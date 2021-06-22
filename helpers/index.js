@@ -12,7 +12,6 @@ var schema = {
     return true; ///^(\+?\d{1,2}-)?\d{3}-\d{3}-\d{4}$/.test(value);
   },
 };
-
 const removeEmpty = (obj) => {
   Object.entries(obj).forEach(
     ([key, val]) =>
