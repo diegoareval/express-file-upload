@@ -1,6 +1,7 @@
 const uploadFile = require("../middleware/upload");
 const fs = require("fs");
-const baseUrl = "http://localhost:8080/files/";
+const parse = require("csv-parser");
+const { removeEmpty, validateAll } = require("../../helpers");
 
 const upload = async (req, res) => {
   try {
@@ -10,9 +11,29 @@ const upload = async (req, res) => {
       return res.status(400).send({ message: "Please upload a file!" });
     }
 
-    res.status(200).send({
-      message: "Uploaded the file successfully: " + req.file.originalname,
-    });
+    var csvData = [];
+    fs.createReadStream(req.file.path)
+      .pipe(parse({ delimiter: ":" }))
+      .on("data", function (csvrow) {
+        //do something with csvrow
+        csvData.push(csvrow);
+      })
+      .on("end", function () {
+        //do something with csvData
+        const l = [];
+        for (data of csvData) {
+         const obj =  removeEmpty(data);
+         l.push(obj)
+        }
+       var newArray = l.filter(value => Object.keys(value).length !== 0);
+
+      const result = validateAll(newArray);
+      return res.status(200).send({
+        message: "Uploaded the file successfully: " + req.file.originalname,
+        data: result
+      });
+      });
+
   } catch (err) {
     console.log(err);
 
@@ -28,44 +49,6 @@ const upload = async (req, res) => {
   }
 };
 
-const getListFiles = (req, res) => {
-  const directoryPath = __basedir + "/resources/static/assets/uploads/";
-
-  fs.readdir(directoryPath, function (err, files) {
-    if (err) {
-      res.status(500).send({
-        message: "Unable to scan files!",
-      });
-    }
-
-    let fileInfos = [];
-
-    files.forEach((file) => {
-      fileInfos.push({
-        name: file,
-        url: baseUrl + file,
-      });
-    });
-
-    res.status(200).send(fileInfos);
-  });
-};
-
-const download = (req, res) => {
-  const fileName = req.params.name;
-  const directoryPath = __basedir + "/resources/static/assets/uploads/";
-
-  res.download(directoryPath + fileName, fileName, (err) => {
-    if (err) {
-      res.status(500).send({
-        message: "Could not download the file. " + err,
-      });
-    }
-  });
-};
-
 module.exports = {
-  upload,
-  getListFiles,
-  download,
+  upload
 };
